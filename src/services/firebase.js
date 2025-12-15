@@ -4,22 +4,22 @@
 // 2. Create project at console.firebase.google.com
 // 3. Copy your config below
 
-/* 
+
 import { initializeApp } from "firebase/app";
-import { 
-  getAuth, 
-  signInWithPopup, 
-  GoogleAuthProvider, 
+import {
+  getAuth,
+  signInWithPopup,
+  GoogleAuthProvider,
   signOut as firebaseSignOut,
-  onAuthStateChanged 
+  onAuthStateChanged
 } from "firebase/auth";
-import { 
-  getFirestore, 
-  collection, 
-  addDoc, 
-  query, 
-  where, 
-  getDocs, 
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  query,
+  where,
+  getDocs,
   doc,
   getDoc,
   updateDoc,
@@ -29,12 +29,13 @@ import {
 } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "...",
-  appId: "..."
+  apiKey: "AIzaSyADufYYvJfQjcgttpV1fW9abpSqXp9i4UA",
+  authDomain: "wishlist-2a3d4.firebaseapp.com",
+  projectId: "wishlist-2a3d4",
+  storageBucket: "wishlist-2a3d4.firebasestorage.app",
+  messagingSenderId: "613198234288",
+  appId: "1:613198234288:web:8bdb5c5f29a2d5f5a3f175",
+  measurementId: "G-D0WY6CK9EQ"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -103,10 +104,10 @@ export const storeService = {
     // Or use improved data structure (subcollections) for items.
     const listRef = doc(db, "wishlists", wishlistId);
     const docSnap = await getDoc(listRef);
-    if(docSnap.exists()) {
-        const list = docSnap.data();
-        const updatedItems = list.items.filter(i => i.id !== itemId);
-        await updateDoc(listRef, { items: updatedItems });
+    if (docSnap.exists()) {
+      const list = docSnap.data();
+      const updatedItems = list.items.filter(i => i.id !== itemId);
+      await updateDoc(listRef, { items: updatedItems });
     }
   },
 
@@ -114,4 +115,4 @@ export const storeService = {
     await deleteDoc(doc(db, "wishlists", wishlistId));
   }
 };
-*/
+

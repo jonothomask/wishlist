@@ -40,9 +40,7 @@ const LandingPage = () => {
                     <button onClick={handleLogin} className="btn btn-primary" style={{ fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '8px', margin: '0 auto' }}>
                         <FcGoogle style={{ background: 'white', borderRadius: '50%', padding: '2px' }} /> Continue with Google
                     </button>
-                    <p className="text-muted" style={{ marginTop: '1rem', fontSize: '0.9rem' }}>
-                        (This is a demo. No real Google account needed.)
-                    </p>
+
                 </div>
             </div>
         </div>
