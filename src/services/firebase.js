@@ -10,6 +10,8 @@ import {
   getAuth,
   signInWithPopup,
   GoogleAuthProvider,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
   signOut as firebaseSignOut,
   onAuthStateChanged
 } from "firebase/auth";
@@ -48,6 +50,24 @@ export const authService = {
   signInWithGoogle: async () => {
     try {
       const result = await signInWithPopup(auth, googleProvider);
+      return result.user;
+    } catch (error) {
+      console.error("Error signing in", error);
+      throw error;
+    }
+  },
+  signUpWithEmail: async (email, password) => {
+    try {
+      const result = await createUserWithEmailAndPassword(auth, email, password);
+      return result.user;
+    } catch (error) {
+      console.error("Error signing up", error);
+      throw error;
+    }
+  },
+  signInWithEmail: async (email, password) => {
+    try {
+      const result = await signInWithEmailAndPassword(auth, email, password);
       return result.user;
     } catch (error) {
       console.error("Error signing in", error);

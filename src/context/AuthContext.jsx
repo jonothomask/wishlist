@@ -22,6 +22,8 @@ export const AuthProvider = ({ children }) => {
         user,
         loading,
         signInWithGoogle: auth.signInWithGoogle,
+        signInWithEmail: auth.signInWithEmail,
+        signUpWithEmail: auth.signUpWithEmail,
         signOut: auth.signOut,
     };
 
