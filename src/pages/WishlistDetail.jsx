@@ -211,8 +211,8 @@ const WishlistDetail = () => {
                 {items.map(item => (
                     <div key={item.id} className="glass-card" style={{ padding: '0', position: 'relative', overflow: 'hidden' }}>
                         {item.image && (
-                            <div style={{ width: '100%', height: '180px', background: '#000', overflow: 'hidden' }}>
-                                <img src={item.image} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            <div style={{ width: '100%', height: '180px', background: '#fff', borderBottom: '1px solid rgba(0,0,0,0.1)', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <img src={item.image} alt={item.name} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', padding: '0.5rem' }} />
                             </div>
                         )}
                         <div style={{ padding: '1.5rem' }}>
