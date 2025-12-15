@@ -68,17 +68,47 @@ const WishlistDetail = () => {
         setIsItemModalOpen(true);
     };
 
+    const fetchPreview = async (url) => {
+        if (!url) return null;
+        try {
+            // Using Microlink API for free link previews
+            const response = await fetch(`https://api.microlink.io?url=${encodeURIComponent(url)}&palette=true&audio=false&video=false&iframe=false`);
+            const data = await response.json();
+            if (data.status === 'success' && data.data.image) {
+                return data.data.image.url;
+            }
+        } catch (e) {
+            console.warn("Failed to fetch link preview", e);
+        }
+        return null;
+    };
+
     const handleSaveItem = async (e) => {
         e.preventDefault();
         if (!itemForm.name) return;
+
         try {
+            // Fetch preview if URL is changing or adding new
+            let previewImage = editingItem ? editingItem.image : null;
+
+            // Only fetch if URL is present and (it's new OR it changed)
+            if (itemForm.url && (!editingItem || editingItem.url !== itemForm.url)) {
+                const img = await fetchPreview(itemForm.url);
+                if (img) previewImage = img;
+            }
+
+            const itemData = {
+                ...itemForm,
+                image: previewImage || null
+            };
+
             if (editingItem) {
                 // Update existing
-                await store.updateItem(id, editingItem.id, itemForm);
-                setItems(items.map(i => i.id === editingItem.id ? { ...i, ...itemForm } : i));
+                await store.updateItem(id, editingItem.id, itemData);
+                setItems(items.map(i => i.id === editingItem.id ? { ...i, ...itemData } : i));
             } else {
                 // Add new
-                const added = await store.addItem(id, itemForm);
+                const added = await store.addItem(id, itemData);
                 setItems([...items, added]);
             }
             setIsItemModalOpen(false);
@@ -179,33 +209,40 @@ const WishlistDetail = () => {
                 </div>
 
                 {items.map(item => (
-                    <div key={item.id} className="glass-card" style={{ padding: '1.5rem', position: 'relative' }}>
-                        <div style={{ position: 'absolute', top: '1rem', right: '1rem', display: 'flex', gap: '0.5rem' }}>
-                            <button
-                                onClick={() => openEditItem(item)}
-                                style={{ background: 'transparent', border: 'none', color: 'var(--color-text)', cursor: 'pointer', opacity: 0.7 }}
-                                title="Edit Item"
-                            >
-                                <FiEdit2 />
-                            </button>
-                            <button
-                                onClick={() => handleDeleteItem(item.id)}
-                                style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }}
-                                title="Delete Item"
-                            >
-                                <FiTrash2 />
-                            </button>
-                        </div>
-
-                        <h3 style={{ paddingRight: '4rem', marginBottom: '0.5rem' }}>{item.name}</h3>
-                        {item.price && <div style={{ color: 'var(--color-secondary)', fontWeight: 'bold', marginBottom: '0.5rem' }}>{item.price}</div>}
-                        {item.notes && <p className="text-muted" style={{ fontSize: '0.9rem', marginBottom: '1rem' }}>{item.notes}</p>}
-
-                        {item.url && (
-                            <a href={item.url} target="_blank" rel="noopener noreferrer" className="btn btn-outline" style={{ marginTop: 'auto', width: '100%' }}>
-                                View Item <FiExternalLink style={{ marginLeft: 'auto' }} />
-                            </a>
+                    <div key={item.id} className="glass-card" style={{ padding: '0', position: 'relative', overflow: 'hidden' }}>
+                        {item.image && (
+                            <div style={{ width: '100%', height: '180px', background: '#000', overflow: 'hidden' }}>
+                                <img src={item.image} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            </div>
                         )}
+                        <div style={{ padding: '1.5rem' }}>
+                            <div style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', display: 'flex', gap: '0.5rem', zIndex: 10 }}>
+                                <button
+                                    onClick={() => openEditItem(item)}
+                                    style={{ background: 'rgba(0,0,0,0.6)', border: 'none', color: 'white', cursor: 'pointer', borderRadius: '50%', padding: '0.4rem', display: 'flex' }}
+                                    title="Edit Item"
+                                >
+                                    <FiEdit2 size={14} />
+                                </button>
+                                <button
+                                    onClick={() => handleDeleteItem(item.id)}
+                                    style={{ background: 'rgba(0,0,0,0.6)', border: 'none', color: '#ff6b6b', cursor: 'pointer', borderRadius: '50%', padding: '0.4rem', display: 'flex' }}
+                                    title="Delete Item"
+                                >
+                                    <FiTrash2 size={14} />
+                                </button>
+                            </div>
+
+                            <h3 style={{ marginBottom: '0.5rem', fontSize: '1.25rem' }}>{item.name}</h3>
+                            {item.price && <div style={{ color: 'var(--color-secondary)', fontWeight: 'bold', marginBottom: '0.5rem' }}>{item.price}</div>}
+                            {item.notes && <p className="text-muted" style={{ fontSize: '0.9rem', marginBottom: '1rem' }}>{item.notes}</p>}
+
+                            {item.url && (
+                                <a href={item.url} target="_blank" rel="noopener noreferrer" className="btn btn-outline" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', marginTop: '1rem' }}>
+                                    View Item <FiExternalLink style={{ marginLeft: '0.5rem' }} />
+                                </a>
+                            )}
+                        </div>
                     </div>
                 ))}
             </div>
