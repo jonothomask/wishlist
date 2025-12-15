@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { store } from '../services/store';
-import { FiArrowLeft, FiPlus, FiTrash2, FiShare2, FiExternalLink, FiCopy, FiCheck } from 'react-icons/fi';
+import { FiArrowLeft, FiPlus, FiTrash2, FiShare2, FiExternalLink, FiCopy, FiCheck, FiEdit2 } from 'react-icons/fi';
 
 const WishlistDetail = () => {
     const { id } = useParams();
@@ -14,9 +14,14 @@ const WishlistDetail = () => {
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    // Modal State
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [newItem, setNewItem] = useState({ name: '', url: '', price: '', notes: '' });
+    // Item Modal State
+    const [isItemModalOpen, setIsItemModalOpen] = useState(false);
+    const [editingItem, setEditingItem] = useState(null); // If set, we are editing this item
+    const [itemForm, setItemForm] = useState({ name: '', url: '', price: '', notes: '' });
+
+    // List Edit State
+    const [isListModalOpen, setIsListModalOpen] = useState(false);
+    const [listForm, setListForm] = useState({ title: '', description: '' });
 
     // Share State
     const [copied, setCopied] = useState(false);
@@ -29,13 +34,13 @@ const WishlistDetail = () => {
         try {
             const data = await store.getWishlist(id);
             if (data.userId !== user.uid) {
-                // Not authorized, maybe redirect to public view? 
-                // For now, redirect to dashboard if not owner
+                // Not authorized, redirect to dashboard
                 navigate('/dashboard');
                 return;
             }
             setList(data);
             setItems(data.items || []);
+            setListForm({ title: data.title, description: data.description || '' });
         } catch (e) {
             console.error(e);
             navigate('/dashboard');
@@ -44,16 +49,42 @@ const WishlistDetail = () => {
         }
     };
 
-    const handleAddItem = async (e) => {
+    // --- ITEM HANDLERS ---
+
+    const openAddItem = () => {
+        setEditingItem(null);
+        setItemForm({ name: '', url: '', price: '', notes: '' });
+        setIsItemModalOpen(true);
+    };
+
+    const openEditItem = (item) => {
+        setEditingItem(item);
+        setItemForm({
+            name: item.name,
+            url: item.url || '',
+            price: item.price || '',
+            notes: item.notes || ''
+        });
+        setIsItemModalOpen(true);
+    };
+
+    const handleSaveItem = async (e) => {
         e.preventDefault();
-        if (!newItem.name) return;
+        if (!itemForm.name) return;
         try {
-            const added = await store.addItem(id, newItem);
-            setItems([...items, added]);
-            setNewItem({ name: '', url: '', price: '', notes: '' });
-            setIsModalOpen(false);
+            if (editingItem) {
+                // Update existing
+                await store.updateItem(id, editingItem.id, itemForm);
+                setItems(items.map(i => i.id === editingItem.id ? { ...i, ...itemForm } : i));
+            } else {
+                // Add new
+                const added = await store.addItem(id, itemForm);
+                setItems([...items, added]);
+            }
+            setIsItemModalOpen(false);
         } catch (e) {
             console.error(e);
+            alert('Error saving item');
         }
     };
 
@@ -63,6 +94,21 @@ const WishlistDetail = () => {
             await store.deleteItem(id, itemId);
             setItems(items.filter(i => i.id !== itemId));
         } catch (e) { console.error(e); }
+    };
+
+    // --- LIST HANDLERS ---
+
+    const handleSaveList = async (e) => {
+        e.preventDefault();
+        if (!listForm.title) return;
+        try {
+            await store.updateWishlist(id, listForm);
+            setList({ ...list, ...listForm });
+            setIsListModalOpen(false);
+        } catch (e) {
+            console.error(e);
+            alert('Error updating wishlist');
+        }
     };
 
     const handleDeleteList = async () => {
@@ -92,8 +138,11 @@ const WishlistDetail = () => {
             {/* Header */}
             <div className="glass-card" style={{ padding: '2rem', marginBottom: '2rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
-                    <div>
-                        <h1 style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }} className="text-gradient">{list.title}</h1>
+                    <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem' }}>
+                            <h1 style={{ fontSize: '2.5rem', margin: 0 }} className="text-gradient">{list.title}</h1>
+                            <button onClick={() => setIsListModalOpen(true)} className="btn btn-sm btn-outline" style={{ fontSize: '0.8rem', padding: '0.2rem 0.5rem' }}>Edit Info</button>
+                        </div>
                         <p className="text-muted">{list.description || 'No description provided.'}</p>
                     </div>
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -112,7 +161,7 @@ const WishlistDetail = () => {
 
                 {/* Add New Card */}
                 <div
-                    onClick={() => setIsModalOpen(true)}
+                    onClick={openAddItem}
                     className="glass-card"
                     style={{
                         minHeight: '200px',
@@ -131,14 +180,24 @@ const WishlistDetail = () => {
 
                 {items.map(item => (
                     <div key={item.id} className="glass-card" style={{ padding: '1.5rem', position: 'relative' }}>
-                        <button
-                            onClick={() => handleDeleteItem(item.id)}
-                            style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }}
-                        >
-                            <FiTrash2 />
-                        </button>
+                        <div style={{ position: 'absolute', top: '1rem', right: '1rem', display: 'flex', gap: '0.5rem' }}>
+                            <button
+                                onClick={() => openEditItem(item)}
+                                style={{ background: 'transparent', border: 'none', color: 'var(--color-text)', cursor: 'pointer', opacity: 0.7 }}
+                                title="Edit Item"
+                            >
+                                <FiEdit2 />
+                            </button>
+                            <button
+                                onClick={() => handleDeleteItem(item.id)}
+                                style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }}
+                                title="Delete Item"
+                            >
+                                <FiTrash2 />
+                            </button>
+                        </div>
 
-                        <h3 style={{ paddingRight: '2rem', marginBottom: '0.5rem' }}>{item.name}</h3>
+                        <h3 style={{ paddingRight: '4rem', marginBottom: '0.5rem' }}>{item.name}</h3>
                         {item.price && <div style={{ color: 'var(--color-secondary)', fontWeight: 'bold', marginBottom: '0.5rem' }}>{item.price}</div>}
                         {item.notes && <p className="text-muted" style={{ fontSize: '0.9rem', marginBottom: '1rem' }}>{item.notes}</p>}
 
@@ -151,35 +210,62 @@ const WishlistDetail = () => {
                 ))}
             </div>
 
-            {/* Add Item Modal */}
-            {isModalOpen && (
-                <div style={{
+            {/* Item Modal (Add/Edit) */}
+            {isItemModalOpen && (
+                <div className="modal-overlay" style={{
                     position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
                     background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem'
                 }}>
                     <div className="glass-card animate-fade-in" style={{ width: '100%', maxWidth: '500px', padding: '2rem', background: '#1e293b' }}>
-                        <h2 style={{ marginTop: 0 }}>Add Item</h2>
-                        <form onSubmit={handleAddItem} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        <h2 style={{ marginTop: 0 }}>{editingItem ? 'Edit Item' : 'Add Item'}</h2>
+                        <form onSubmit={handleSaveItem} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                             <div>
                                 <label className="text-muted" style={{ fontSize: '0.85rem' }}>Item Name *</label>
-                                <input text="text" required value={newItem.name} onChange={e => setNewItem({ ...newItem, name: e.target.value })} placeholder="e.g. Graphic T-Shirt" />
+                                <input type="text" required value={itemForm.name} onChange={e => setItemForm({ ...itemForm, name: e.target.value })} placeholder="e.g. Graphic T-Shirt" />
                             </div>
                             <div>
                                 <label className="text-muted" style={{ fontSize: '0.85rem' }}>Link (Optional)</label>
-                                <input text="url" value={newItem.url} onChange={e => setNewItem({ ...newItem, url: e.target.value })} placeholder="https://amazon.com/..." />
+                                <input type="url" value={itemForm.url} onChange={e => setItemForm({ ...itemForm, url: e.target.value })} placeholder="https://amazon.com/..." />
                             </div>
                             <div>
                                 <label className="text-muted" style={{ fontSize: '0.85rem' }}>Price (Optional)</label>
-                                <input text="text" value={newItem.price} onChange={e => setNewItem({ ...newItem, price: e.target.value })} placeholder="$25.00" />
+                                <input type="text" value={itemForm.price} onChange={e => setItemForm({ ...itemForm, price: e.target.value })} placeholder="$25.00" />
                             </div>
                             <div>
                                 <label className="text-muted" style={{ fontSize: '0.85rem' }}>Notes </label>
-                                <textarea rows={3} value={newItem.notes} onChange={e => setNewItem({ ...newItem, notes: e.target.value })} placeholder="Size, Color, etc." />
+                                <textarea rows={3} value={itemForm.notes} onChange={e => setItemForm({ ...itemForm, notes: e.target.value })} placeholder="Size, Color, etc." />
                             </div>
                             <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-                                <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>Add Item</button>
-                                <button type="button" onClick={() => setIsModalOpen(false)} className="btn btn-outline" style={{ flex: 1 }}>Cancel</button>
+                                <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>{editingItem ? 'Save Changes' : 'Add Item'}</button>
+                                <button type="button" onClick={() => setIsItemModalOpen(false)} className="btn btn-outline" style={{ flex: 1 }}>Cancel</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* List Edit Modal */}
+            {isListModalOpen && (
+                <div className="modal-overlay" style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem'
+                }}>
+                    <div className="glass-card animate-fade-in" style={{ width: '100%', maxWidth: '500px', padding: '2rem', background: '#1e293b' }}>
+                        <h2 style={{ marginTop: 0 }}>Edit Wishlist</h2>
+                        <form onSubmit={handleSaveList} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            <div>
+                                <label className="text-muted" style={{ fontSize: '0.85rem' }}>Title *</label>
+                                <input type="text" required value={listForm.title} onChange={e => setListForm({ ...listForm, title: e.target.value })} placeholder="e.g. Birthday Wishlist" />
+                            </div>
+                            <div>
+                                <label className="text-muted" style={{ fontSize: '0.85rem' }}>Description</label>
+                                <textarea rows={3} value={listForm.description} onChange={e => setListForm({ ...listForm, description: e.target.value })} placeholder="What is this list for?" />
+                            </div>
+                            <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+                                <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>Save Changes</button>
+                                <button type="button" onClick={() => setIsListModalOpen(false)} className="btn btn-outline" style={{ flex: 1 }}>Cancel</button>
                             </div>
                         </form>
                     </div>
@@ -189,5 +275,6 @@ const WishlistDetail = () => {
         </div>
     );
 };
+
 
 export default WishlistDetail;

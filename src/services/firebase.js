@@ -113,6 +113,23 @@ export const storeService = {
 
   deleteWishlist: async (wishlistId) => {
     await deleteDoc(doc(db, "wishlists", wishlistId));
+  },
+
+  updateWishlist: async (wishlistId, data) => {
+    const listRef = doc(db, "wishlists", wishlistId);
+    await updateDoc(listRef, data);
+  },
+
+  updateItem: async (wishlistId, itemId, updatedData) => {
+    const listRef = doc(db, "wishlists", wishlistId);
+    const docSnap = await getDoc(listRef);
+    if (docSnap.exists()) {
+      const list = docSnap.data();
+      const newItems = list.items.map(item =>
+        item.id === itemId ? { ...item, ...updatedData } : item
+      );
+      await updateDoc(listRef, { items: newItems });
+    }
   }
 };
 
